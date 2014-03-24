@@ -1255,7 +1255,7 @@ window.Chart = function(context){
 	}
 	
 	var HorizontalBar = function(data,config,ctx){
-		var maxSize, scaleHop, calculatedScale, labelHeight, scaleHeight, valueBounds, labelTemplateString, valueHop,widestXLabel, xAxisLength,yAxisPosX,xAxisPosY,barWidth, rotateLabels = 0;
+		var maxSize, scaleHop, calculatedScale, labelHeight, scaleWidth, valueBounds, labelTemplateString, valueHop,widestXLabel, xAxisLength,yAxisPosX,xAxisPosY,barWidth, rotateLabels = 0;
 			
 		calculateDrawingSizes();
 		
@@ -1264,7 +1264,7 @@ window.Chart = function(context){
 		labelTemplateString = (config.scaleShowLabels)? config.scaleLabel : "";
 		if (!config.scaleOverride){
 			
-			calculatedScale = calculateScale(scaleHeight,valueBounds.maxSteps,valueBounds.minSteps,valueBounds.maxValue,valueBounds.minValue,labelTemplateString);
+			calculatedScale = calculateScale(scaleWidth,valueBounds.maxSteps,valueBounds.minSteps,valueBounds.maxValue,valueBounds.minValue,labelTemplateString);
 		}
 		else {
 			calculatedScale = {
@@ -1276,8 +1276,8 @@ window.Chart = function(context){
 			populateLabels(labelTemplateString, calculatedScale.labels,calculatedScale.steps,config.scaleStartValue,config.scaleStepWidth);
 		}
 		
-		scaleHop = Math.floor(scaleHeight/calculatedScale.steps);
-		calculateXAxisSize();
+		scaleHop = Math.floor(scaleWidth/calculatedScale.steps);
+		calculateYAxisSize();
 		animationLoop(config,drawScale,drawBars,ctx);		
 		
 		function drawBars(animPc){
@@ -1376,46 +1376,48 @@ window.Chart = function(context){
 			
 		}
 
-		function calculateXAxisSize(){
+		function calculateYAxisSize(){
 			var longestText = 1;
 			//if we are showing the labels
 			if (config.scaleShowLabels){
 				ctx.font = config.scaleFontStyle + " " + config.scaleFontSize+"px " + config.scaleFontFamily;
-				for (var i=0; i<calculatedScale.labels.length; i++){
-					var measuredText = ctx.measureText(calculatedScale.labels[i]).width;
+				for (var i=0; i<data.labels.length; i++){
+					var measuredText = ctx.measureText(data.labels[i]).width;
 					longestText = (measuredText > longestText)? measuredText : longestText;
 				}
 				//Add a little extra padding from the y axis
 				longestText +=10;
 			}
-			xAxisLength = width - longestText - widestXLabel;
-			valueHop = Math.floor(xAxisLength/(data.labels.length));	
-			
+			xAxisLength = width - longestText - widestYLabel;
+
+			//value is not on the X axis on a horizonal bar
+			yAxisLength = height - longestText - widestYLabel;
+			valueHop = Math.floor(yAxisLength/(data.labels.length));	
 			barWidth = (valueHop - config.scaleGridLineWidth*2 - (config.barValueSpacing*2) - (config.barDatasetSpacing*data.datasets.length-1) - ((config.barStrokeWidth/2)*data.datasets.length-1))/data.datasets.length;
 			
-			yAxisPosX = width-widestXLabel/2-xAxisLength;
+			yAxisPosX = width-widestYLabel/2-xAxisLength;
 			xAxisPosY = scaleHeight + config.scaleFontSize/2;				
 		}	
-			
+
 		function calculateDrawingSizes(){
 			maxSize = height;
 
 			//Need to check the X axis first - measure the length of each text metric, and figure out if we need to rotate by 45 degrees.
 			ctx.font = config.scaleFontStyle + " " + config.scaleFontSize+"px " + config.scaleFontFamily;
-			widestXLabel = 1;
+			widestYLabel = 1;
 			for (var i=0; i<data.labels.length; i++){
 				var textLength = ctx.measureText(data.labels[i]).width;
 				//If the text length is longer - make that equal to longest text!
-				widestXLabel = (textLength > widestXLabel)? textLength : widestXLabel;
+				widestYLabel = (textLength > widestYLabel)? textLength : widestYLabel;
 			}
-			if (width/data.labels.length < widestXLabel){
+			if (width/data.labels.length < widestYLabel){
 				rotateLabels = 45;
-				if (width/data.labels.length < Math.cos(rotateLabels) * widestXLabel){
+				if (width/data.labels.length < Math.cos(rotateLabels) * widestYLabel){
 					rotateLabels = 90;
-					maxSize -= widestXLabel; 
+					maxSize -= widestYLabel; 
 				}
 				else{
-					maxSize -= Math.sin(rotateLabels) * widestXLabel;
+					maxSize -= Math.sin(rotateLabels) * widestYLabel;
 				}
 			}
 			else{
@@ -1431,6 +1433,7 @@ window.Chart = function(context){
 			maxSize -= labelHeight;
 			//Set 5 pixels greater than the font size to allow for a little padding from the X axis.
 			
+			scaleWidth = width;
 			scaleHeight = maxSize;
 			
 			//Then get the area above we can safely draw on.
@@ -1446,8 +1449,8 @@ window.Chart = function(context){
 				}
 			};
 	
-			var maxSteps = Math.floor((scaleHeight / (labelHeight*0.66)));
-			var minSteps = Math.floor((scaleHeight / labelHeight*0.5));
+			var maxSteps = Math.floor((scaleWidth / (labelHeight*0.66)));
+			var minSteps = Math.floor((scaleWidth / labelHeight*0.5));
 			
 			return {
 				maxValue : upperValue,
